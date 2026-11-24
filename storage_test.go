@@ -16,6 +16,7 @@ func TestEndToEnd(t *testing.T) {
 	s.Add(5, "A")
 	s.Add(10, "B")
 	s.Add(1, "C")
+	s.Add(7, "O")
 	s.Add(7, "D")
 	s.Add(3, "E")
 

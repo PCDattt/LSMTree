@@ -67,6 +67,9 @@ func (bt *BinaryTree) AddNode(n *Node) {
 			} else {
 				tempNode = tempNode.RightNode
 			}
+		} else if n.Key == tempNode.Key {
+			tempNode.Value = n.Value
+			return
 		} else {
 			if tempNode.LeftNode == nil {
 				tempNode.LeftNode = n
