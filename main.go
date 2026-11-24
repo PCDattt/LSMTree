@@ -10,7 +10,7 @@ var s *Storage
 
 func main() {
 	var err error
-	s, err = NewStorage()
+	s, err = NewStorage(CONST_CURRENT_FILE_NAME, CONST_COMPACTED_FILE_NAME)
 	if err != nil {
 		panic(err)
 	}

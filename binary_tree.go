@@ -23,9 +23,10 @@ func NodeUnmarshal(s string) (Node,error) {
 		if err != nil {
 			return Node{}, err
 		}
+		v := strings.Trim(parts[1], "\n")
 		return Node{
 			Key: k,
-			Value: parts[1],
+			Value: v,
 		}, nil
 	}
 	return Node{}, nil
@@ -42,6 +43,10 @@ func NewNode(k int, v string) *Node {
 
 type BinaryTree struct {
 	Head *Node
+}
+
+func NewBinaryTree() BinaryTree {
+	return BinaryTree{}
 }
 
 func (bt *BinaryTree) Clear() {
