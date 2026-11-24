@@ -18,7 +18,6 @@ func main() {
 	mux.HandleFunc("POST /Add", AddHandler)
 	mux.HandleFunc("POST /Find", FindHandler)
 	mux.HandleFunc("POST /Flush", FlushHandler)
-	mux.HandleFunc("POST /Compact", CompactHandler)
 
 	fmt.Println("LSM Tree Server listening on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
@@ -40,6 +39,8 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.Add(req.Key, req.Value)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK\n"))
 }
 
 func FindHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +54,7 @@ func FindHandler(w http.ResponseWriter, r *http.Request) {
 	value, err := s.Find(req.Key)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "Fail to find"+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Fail to find: "+err.Error(), http.StatusInternalServerError)
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
@@ -61,19 +62,18 @@ func FindHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func FlushHandler(w http.ResponseWriter, r *http.Request) {
-	err := s.Flush()
+	// Compact file before flush to keep file's keys in sorted order
+	err := s.Compact()
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "Fail to flush"+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Fail to compact: "+err.Error(), http.StatusInternalServerError)
+	}
+	err = s.Flush()
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Fail to flush: "+err.Error(), http.StatusInternalServerError)
 	}
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK\n"))
 }
 
-func CompactHandler(w http.ResponseWriter, r *http.Request) {
-err := s.Compact()
-	if err != nil {
-		fmt.Println(err)
-		http.Error(w, "Fail to compact"+err.Error(), http.StatusInternalServerError)
-	}
-	w.WriteHeader(http.StatusOK)
-}

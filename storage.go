@@ -20,11 +20,11 @@ type Storage struct {
 
 func NewStorage() (*Storage, error) {
 	err := os.Remove(currentFileName)
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrNotExist){
 		return nil, err
 	}
 	err = os.Remove(compactedFileName)
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrNotExist){
 		return nil, err
 	}
 	currentFile, err := os.OpenFile(currentFileName, os.O_CREATE|os.O_RDWR, 0644)
@@ -124,18 +124,27 @@ func (s *Storage) Compact() error {
 	if err != nil {
 		return err
 	}
-	oldCompactedFileScanner:= bufio.NewScanner(s.compactedFile)
+	compactedFileScanner:= bufio.NewScanner(s.compactedFile)
 	currentFileScanner := bufio.NewScanner(s.currentFile)
-	oldCompactedLine, currentLine := "", ""
+	compactedLine, currentLine := "", ""
 	nodeCompacted, nodeCurrent := Node{}, Node{}
+	canScanCompactedFile, canScanCurrentFile := true , true
 
-	// Merge Sort on 2 files - incomplete
-	for oldCompactedFileScanner.Scan() && currentFileScanner.Scan() {
-		if oldCompactedLine == "" {
-			oldCompactedLine = oldCompactedFileScanner.Text()
-			nodeCompacted, err = NodeUnmarshal(oldCompactedLine)
+	// Merge sort 2 files
+	for {
+		if compactedLine == "" {
+			canScanCompactedFile = compactedFileScanner.Scan()
+			if !canScanCompactedFile {
+				break
+			}
+			compactedLine = compactedFileScanner.Text()
+			nodeCompacted, err = NodeUnmarshal(compactedLine)
 		}
 		if currentLine == "" {
+			canScanCurrentFile = currentFileScanner.Scan()
+			if !canScanCurrentFile {
+				break
+			}
 			currentLine = currentFileScanner.Text()
 			nodeCurrent, err = NodeUnmarshal(currentLine)
 		}
@@ -146,7 +155,7 @@ func (s *Storage) Compact() error {
 			}
 			newCompactFile.WriteString(NodeMarshal(nodeCompacted) + "\n")
 			s.Index.Add(nodeCompacted.Key, compactedFileName, offset)
-			oldCompactedLine = ""
+			compactedLine = ""
 		} else {
 			offset, err := newCompactFile.Seek(0, io.SeekCurrent)
 			if err != nil {
@@ -155,12 +164,21 @@ func (s *Storage) Compact() error {
 			newCompactFile.WriteString(NodeMarshal(nodeCurrent)+ "\n")
 			s.Index.Add(nodeCurrent.Key, compactedFileName, offset)
 			currentLine = ""
+			// If equal then pick only node from current file
+			// and skip node in compacted file
+			if nodeCompacted.Key == nodeCurrent.Key {
+				compactedLine = ""
+			}
 		}
 	}
-	for oldCompactedFileScanner.Scan() {
-		if oldCompactedLine == "" {
-			oldCompactedLine = oldCompactedFileScanner.Text()
-			nodeCompacted, err = NodeUnmarshal(oldCompactedLine)
+	for {
+		if compactedLine == "" {
+			canScanCompactedFile = compactedFileScanner.Scan()
+			if !canScanCompactedFile {
+				break
+			}
+			compactedLine = compactedFileScanner.Text()
+			nodeCompacted, err = NodeUnmarshal(compactedLine)
 		}
 		offset, err := newCompactFile.Seek(0, io.SeekCurrent)
 		if err != nil {
@@ -168,20 +186,24 @@ func (s *Storage) Compact() error {
 		}
 		newCompactFile.WriteString(NodeMarshal(nodeCompacted)+ "\n") 
 		s.Index.Add(nodeCompacted.Key, compactedFileName, offset)
-		oldCompactedLine = ""
+		compactedLine = ""
 	}
-	for currentFileScanner.Scan() {
+	for {
 		if currentLine == "" {
+			canScanCurrentFile = currentFileScanner.Scan()
+			if !canScanCurrentFile {
+				break
+			}
 			currentLine = currentFileScanner.Text()
 			nodeCurrent, err = NodeUnmarshal(currentLine)
 		}
 		offset, err := newCompactFile.Seek(0, io.SeekCurrent)
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
+		}
 		newCompactFile.WriteString(NodeMarshal(nodeCurrent) + "\n")
-			s.Index.Add(nodeCurrent.Key, compactedFileName, offset)
-			currentLine = ""
+		s.Index.Add(nodeCurrent.Key, compactedFileName, offset)
+		currentLine = ""
 	}
 	// end of Merge sort
 
