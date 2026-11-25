@@ -10,6 +10,7 @@ The goal of this project is to understand the fundamental concepts behind LSM Tr
 - **Index:** Uses a Go map to map keys to their corresponding file names and disk offsets.
 - **Storage:** Persists data to disk using files.
 - **Compaction:** Merges sorted data from two files using a merge-sort approach.
+- **Unit Testing:** 75%
 
 ## Features
 
