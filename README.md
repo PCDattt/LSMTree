@@ -27,4 +27,6 @@ The goal of this project is to understand the fundamental concepts behind LSM Tr
 - Replace text-based storage (`.txt`) with binary files format (`.bin`) for more efficient storage and serialization.
 - Implement a **Sparse Index** to reduce memory consumption by avoiding the need to keep an index entry for every key.
 - Support efficient range queries using the Sparse Index.
+- Implement crash-safe writes and recovery to prevent data loss after unexpected shutdowns.
+- Ensure thread-safe concurrent reads and writes.
 - Replace the unbalanced BST with a self-balancing tree to guarantee O(log n) insertion and lookup complexity.
